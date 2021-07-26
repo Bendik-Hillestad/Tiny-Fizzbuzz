@@ -88,11 +88,23 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
+#include <winternl.h>
 #include <intrin.h>
 
 #if !defined(_M_IX86)
 #   error 32-bit build only
 #endif
+
+struct REAL_PEB_LDR_DATA
+{
+    ULONG      Length;
+    BOOLEAN    Initialized;
+    PVOID      SsHandle;
+    LIST_ENTRY InLoadOrderModuleList;
+    LIST_ENTRY InMemoryOrderModuleList;
+    LIST_ENTRY InInitializationOrderModuleList;
+    PVOID      EntryInProgress;
+};
 
 using u8  = unsigned __int8;
 using u32 = unsigned __int32;
@@ -125,17 +137,18 @@ extern "C" __declspec(noreturn) void __stdcall _main()
     #define GetStdHandle ((HANDLE(WINAPI*)(DWORD))(function_table[1]))
     #define VirtualAlloc ((LPVOID(WINAPI*)(LPVOID, SIZE_T, DWORD, DWORD))(function_table[2]))
 
-    // Find where kernel32 is located in memory.
-    DWORD module;
-    __asm
-    {
-        mov eax, DWORD ptr fs:[30h]
-        mov eax, [eax + 0Ch]
-        mov eax, [eax + 1Ch]
-        mov eax, [eax]
-        mov eax, [eax + 08h]
-        mov module, eax
-    }
+    // Find where kernel32.dll (or kernelbase.dll) is located in memory.
+    DWORD const module = reinterpret_cast<DWORD>(
+        reinterpret_cast<LDR_DATA_TABLE_ENTRY const*>(
+            reinterpret_cast<DWORD>(
+                reinterpret_cast<REAL_PEB_LDR_DATA const*>(
+                    reinterpret_cast<PEB const*>(
+                        __readfsdword(0x30)
+                    )->Ldr
+                )->InInitializationOrderModuleList.Flink->Flink
+            ) - (2 * sizeof(LIST_ENTRY))
+        )->DllBase
+    );
 
     // Find the export header so we can iterate through the functions.
     IMAGE_EXPORT_DIRECTORY const* const export_header = reinterpret_cast<IMAGE_EXPORT_DIRECTORY const*>(
