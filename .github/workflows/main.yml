@@ -1,0 +1,35 @@
+name: Build
+
+on:
+    push:
+        branches:
+        - master
+    release:
+        types: [published]
+
+jobs:
+    build:
+        name: Win32
+        runs-on: windows-2019
+        steps:
+            - name: Compile
+            - uses: actions/checkout@v2
+              shell: cmd
+              run: |
+                call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars32.bat"
+                call ./build.bat
+            - name: Upload artifact
+              uses: actions/upload-artifact@v2
+              with:
+                path: out/fizzbuzz.exe
+                name: fizzbuzz
+            - name: Upload build
+              if: github.event_name == 'release'
+              uses: actions/upload-release-asset@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                upload_url: ${{ github.event.release.upload_url }}
+                asset_path: out/fizzbuzz.exe
+                asset_name: fizzbuzz.exe
+                asset_content_type: application/octet-stream
