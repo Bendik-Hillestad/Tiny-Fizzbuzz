@@ -39,5 +39,29 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 REM Move executable to the out directory
 
 move /Y "tmp\exe\fizzbuzz.exe" "out\fizzbuzz.exe" >nul
+echo -^> %~dp0out\fizzbuzz.exe
 
-echo - Done -^> %~dp0out\fizzbuzz.exe
+REM Check for crinkler
+
+if exist "crinkler.exe" (
+    REM Compile the program
+
+    echo - Compiling for crinkler
+
+    cl.exe /nologo /std:c++17 /permissive- /Zc:inline /Zc:threadSafeInit- /Zc:forScope /O1 /Oi /Oy- /GR- /GS- /Gs9999999 /EHa- /MD /W4 /WX /Zl /D"CRINKLER" /D"WIN32" /D"_HAS_EXCEPTIONS=0" /D"NDEBUG" /Fo"tmp/obj/fizzbuzz_cr.obj" /c src/main.cpp
+
+    if %errorlevel% neq 0 exit /b %errorlevel%
+    
+    REM Link the program
+
+    echo - Linking with crinkler
+
+    crinkler.exe /nodefaultlib /entry:_main /largeaddressaware /subsystem:console /out:tmp/exe/fizzbuzz_cr.exe /CRINKLER /TINYHEADER /TINYIMPORT /UNALIGNCODE tmp/obj/fizzbuzz_cr.obj kernel32.lib
+
+    if %errorlevel% neq 0 exit /b %errorlevel%
+    
+    REM Move executable to the out directory
+    
+    move /Y "tmp\exe\fizzbuzz_cr.exe" "out\fizzbuzz_cr.exe" >nul
+    echo -^> %~dp0out\fizzbuzz_cr.exe
+)

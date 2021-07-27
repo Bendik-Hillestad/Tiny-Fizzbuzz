@@ -95,6 +95,7 @@
 #   error 32-bit build only
 #endif
 
+#if !defined(CRINKLER)
 struct REAL_PEB_LDR_DATA
 {
     ULONG      Length;
@@ -105,6 +106,7 @@ struct REAL_PEB_LDR_DATA
     LIST_ENTRY InInitializationOrderModuleList;
     PVOID      EntryInProgress;
 };
+#endif
 
 using u8  = unsigned __int8;
 using u32 = unsigned __int32;
@@ -124,6 +126,7 @@ static constexpr u32 hash(char const* str)
 
 extern "C" __declspec(noreturn) void __stdcall _main()
 {
+    #if !defined(CRINKLER)
     // Prepare loading the functions we need from kernel32.
     constexpr u32 function_hashes[3]
     {
@@ -194,6 +197,7 @@ extern "C" __declspec(noreturn) void __stdcall _main()
             }
         }
     }
+    #endif
 
     // Configure the number of integers we will go through.
     constexpr u32 N{ 100 };
@@ -249,7 +253,7 @@ extern "C" __declspec(noreturn) void __stdcall _main()
     // Write our output to the console.
     WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, (p - buf), nullptr, nullptr);
     
-    // Exit. 
+    // Exit.
     __fastfail(FAST_FAIL_FATAL_APP_EXIT);
     __assume(0);
 }
